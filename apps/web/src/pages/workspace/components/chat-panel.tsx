@@ -1,17 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { api } from "@/lib/api";
 import { env } from "@/env";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  AlertCircle,
   Bot,
   ChevronDown,
   ChevronRight,
   Loader2,
+  RefreshCw,
   Send,
   Square,
   User,
   Wrench,
+  X,
 } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
@@ -35,6 +39,11 @@ interface Message {
   createdAt: string;
 }
 
+interface ChatError {
+  message: string;
+  code?: string;
+  canRetry: boolean;
+}
 
 export function ChatPanel({ projectId, disabled }: ChatPanelProps) {
   const queryClient = useQueryClient();
@@ -50,6 +59,8 @@ export function ChatPanel({ projectId, disabled }: ChatPanelProps) {
       isError?: boolean;
     }>
   >([]);
+  const [chatError, setChatError] = useState<ChatError | null>(null);
+  const [lastMessage, setLastMessage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -77,16 +88,24 @@ export function ChatPanel({ projectId, disabled }: ChatPanelProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conversationData?.messages, streamingContent, streamingToolCalls]);
 
-  const handleSend = useCallback(async () => {
-    if (!input.trim() || isStreaming || disabled) return;
-
-    const message = input.trim();
-    setInput("");
+  const sendMessage = useCallback(async (message: string) => {
     setIsStreaming(true);
     setStreamingContent("");
     setStreamingToolCalls([]);
+    setChatError(null);
+    setLastMessage(message);
 
     abortControllerRef.current = new AbortController();
+
+    // Set a timeout for the request (2 minutes)
+    const timeoutId = setTimeout(() => {
+      abortControllerRef.current?.abort();
+      setChatError({
+        message: "Request timed out. The agent took too long to respond.",
+        code: "TIMEOUT",
+        canRetry: true,
+      });
+    }, 120000);
 
     try {
       const response = await fetch(`${env.VITE_API_URL}/api/agent/chat`, {
@@ -99,8 +118,18 @@ export function ChatPanel({ projectId, disabled }: ChatPanelProps) {
         signal: abortControllerRef.current.signal,
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        let errorMessage = `Request failed with status ${response.status}`;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error?.message || errorMessage;
+        } catch {
+          // Use default error message
+        }
+        throw new Error(errorMessage);
       }
 
       const reader = response.body?.getReader();
@@ -121,20 +150,32 @@ export function ChatPanel({ projectId, disabled }: ChatPanelProps) {
 
         for (const line of lines) {
           if (line.startsWith("event: ")) {
-            // Wait for next line with data
             continue;
           }
           if (line.startsWith("data: ")) {
-            const data = JSON.parse(line.substring(6));
-            handleSSEEvent(data);
+            try {
+              const data = JSON.parse(line.substring(6));
+              handleSSEEvent(data);
+            } catch (e) {
+              console.warn("Failed to parse SSE data:", line, e);
+            }
           }
         }
       }
     } catch (error) {
+      clearTimeout(timeoutId);
+
       if ((error as Error).name === "AbortError") {
-        console.log("Request aborted");
+        // Check if it was a manual abort or timeout
+        if (!chatError) {
+          console.log("Request aborted by user");
+        }
       } else {
         console.error("Chat error:", error);
+        setChatError({
+          message: (error as Error).message || "An unexpected error occurred",
+          canRetry: true,
+        });
       }
     } finally {
       setIsStreaming(false);
@@ -144,9 +185,33 @@ export function ChatPanel({ projectId, disabled }: ChatPanelProps) {
       // Refresh file tree
       queryClient.invalidateQueries({ queryKey: ["files"] });
     }
-  }, [input, isStreaming, disabled, projectId, queryClient]);
+  }, [projectId, queryClient, chatError]);
+
+  const handleSend = useCallback(async () => {
+    if (!input.trim() || isStreaming || disabled) return;
+
+    const message = input.trim();
+    setInput("");
+    await sendMessage(message);
+  }, [input, isStreaming, disabled, sendMessage]);
+
+  const handleRetry = useCallback(async () => {
+    if (!lastMessage || isStreaming) return;
+    setChatError(null);
+    await sendMessage(lastMessage);
+  }, [lastMessage, isStreaming, sendMessage]);
 
   const handleSSEEvent = (data: Record<string, unknown>) => {
+    // Handle error events from SSE
+    if (data.type === "error" || data.error) {
+      setChatError({
+        message: (data.message as string) || (data.error as string) || "Agent error occurred",
+        code: data.code as string | undefined,
+        canRetry: true,
+      });
+      return;
+    }
+
     // Handle different event types
     if (data.content) {
       setStreamingContent((prev) => prev + (data.content as string));
@@ -205,6 +270,39 @@ export function ChatPanel({ projectId, disabled }: ChatPanelProps) {
         )}
       </div>
 
+      {/* Error Alert */}
+      {chatError && (
+        <div className="border-b px-3 py-2">
+          <Alert variant="destructive" className="py-2">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="ml-2 flex items-center justify-between">
+              <span className="text-sm">{chatError.message}</span>
+              <div className="flex items-center gap-1 ml-2">
+                {chatError.canRetry && lastMessage && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRetry}
+                    className="h-6 px-2"
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Retry
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setChatError(null)}
+                  className="h-6 px-2"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+
       {/* Messages area */}
       <div className="flex-1 overflow-auto p-3 space-y-4">
         {isLoading ? (
@@ -239,6 +337,18 @@ export function ChatPanel({ projectId, disabled }: ChatPanelProps) {
                       {streamingContent}
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+            {/* Thinking indicator when streaming but no content yet */}
+            {isStreaming && !streamingContent && streamingToolCalls.length === 0 && (
+              <div className="flex gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                  <Bot className="h-4 w-4" />
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">Thinking...</span>
                 </div>
               </div>
             )}
@@ -321,9 +431,13 @@ function ToolCallItem({
   };
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const hasError = toolCall.isError;
 
   return (
-    <div className="rounded-md border bg-muted/30 text-sm">
+    <div className={cn(
+      "rounded-md border text-sm",
+      hasError ? "border-red-500/50 bg-red-500/10" : "bg-muted/30"
+    )}>
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="flex w-full items-center gap-2 px-3 py-2 hover:bg-muted/50"
@@ -333,10 +447,19 @@ function ToolCallItem({
         ) : (
           <ChevronRight className="h-4 w-4" />
         )}
-        <Wrench className="h-4 w-4 text-muted-foreground" />
+        <Wrench className={cn(
+          "h-4 w-4",
+          hasError ? "text-red-500" : "text-muted-foreground"
+        )} />
         <span className="font-medium">{toolCall.name}</span>
-        {toolCall.isError && (
-          <span className="text-xs text-red-500">(error)</span>
+        {hasError && (
+          <span className="ml-auto flex items-center gap-1 text-xs text-red-500">
+            <AlertCircle className="h-3 w-3" />
+            Error
+          </span>
+        )}
+        {toolCall.result === undefined && !hasError && (
+          <Loader2 className="ml-auto h-3 w-3 animate-spin text-muted-foreground" />
         )}
       </button>
       {isExpanded && (
@@ -345,7 +468,7 @@ function ToolCallItem({
             <div className="text-xs font-medium text-muted-foreground">
               Input:
             </div>
-            <pre className="text-xs overflow-auto max-h-32 mt-1">
+            <pre className="text-xs overflow-auto max-h-32 mt-1 p-2 bg-muted/50 rounded">
               {JSON.stringify(toolCall.input, null, 2)}
             </pre>
           </div>
@@ -356,8 +479,8 @@ function ToolCallItem({
               </div>
               <pre
                 className={cn(
-                  "text-xs overflow-auto max-h-32 mt-1",
-                  toolCall.isError && "text-red-500"
+                  "text-xs overflow-auto max-h-32 mt-1 p-2 rounded",
+                  hasError ? "bg-red-500/10 text-red-500" : "bg-muted/50"
                 )}
               >
                 {typeof toolCall.result === "string"

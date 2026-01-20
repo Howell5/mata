@@ -7,9 +7,12 @@ import {
   Folder,
   FolderOpen,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 
 interface FileNode {
   name: string;
@@ -42,6 +45,45 @@ async function fetchFiles(sandboxId: string, path: string) {
     throw new Error("Failed to fetch files");
   }
   return json.data as { files: FileNode[]; path: string };
+}
+
+function FileTreeSkeleton() {
+  return (
+    <div className="flex-1 overflow-auto py-2 px-2 space-y-1">
+      {/* Folder skeletons */}
+      <div className="flex items-center gap-2 py-1">
+        <Skeleton className="h-4 w-4" />
+        <Skeleton className="h-4 w-4" />
+        <Skeleton className="h-4 w-24" />
+      </div>
+      <div className="flex items-center gap-2 py-1 pl-3">
+        <Skeleton className="h-4 w-4" />
+        <Skeleton className="h-4 w-4" />
+        <Skeleton className="h-4 w-20" />
+      </div>
+      <div className="flex items-center gap-2 py-1 pl-3">
+        <Skeleton className="h-4 w-4" />
+        <Skeleton className="h-4 w-4" />
+        <Skeleton className="h-4 w-16" />
+      </div>
+      {/* File skeletons */}
+      <div className="flex items-center gap-2 py-1">
+        <Skeleton className="h-4 w-4 opacity-0" />
+        <Skeleton className="h-4 w-4" />
+        <Skeleton className="h-4 w-28" />
+      </div>
+      <div className="flex items-center gap-2 py-1">
+        <Skeleton className="h-4 w-4 opacity-0" />
+        <Skeleton className="h-4 w-4" />
+        <Skeleton className="h-4 w-20" />
+      </div>
+      <div className="flex items-center gap-2 py-1">
+        <Skeleton className="h-4 w-4 opacity-0" />
+        <Skeleton className="h-4 w-4" />
+        <Skeleton className="h-4 w-32" />
+      </div>
+    </div>
+  );
 }
 
 function FileTreeItem({
@@ -138,7 +180,7 @@ export function FileTree({
   onFileSelect,
   selectedFile,
 }: FileTreeProps) {
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["files", sandboxId, "/"],
     queryFn: () => fetchFiles(sandboxId, "/"),
     enabled: !!sandboxId,
@@ -146,31 +188,45 @@ export function FileTree({
   });
 
   if (isLoading) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <FileTreeSkeleton />;
   }
 
   if (error) {
     return (
-      <div className="flex flex-1 items-center justify-center p-4 text-center text-sm text-red-500">
-        Failed to load files
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center">
+        <p className="text-sm text-red-500">Failed to load files</p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => refetch()}
+        >
+          <RefreshCw className="mr-1 h-3 w-3" />
+          Retry
+        </Button>
       </div>
     );
   }
 
   if (!data?.files.length) {
     return (
-      <div className="flex flex-1 items-center justify-center p-4 text-center text-sm text-muted-foreground">
-        No files yet
+      <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center">
+        <Folder className="h-8 w-8 text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">No files yet</p>
+        <p className="text-xs text-muted-foreground">
+          Files will appear here when created
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 overflow-auto py-2">
+    <div className="relative flex-1 overflow-auto py-2">
+      {/* Refresh indicator */}
+      {isFetching && !isLoading && (
+        <div className="absolute right-2 top-2">
+          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+        </div>
+      )}
       {data.files
         .sort((a, b) => {
           if (a.isDir && !b.isDir) return -1;

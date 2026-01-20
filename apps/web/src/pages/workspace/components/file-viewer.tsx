@@ -1,6 +1,8 @@
 import { env } from "@/env";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { FileCode2, Loader2, RefreshCw } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 
 interface FileViewerProps {
   sandboxId: string;
@@ -32,8 +34,35 @@ function getLanguageFromPath(path: string): string {
   return langMap[ext || ""] || "plaintext";
 }
 
+function FileViewerSkeleton() {
+  return (
+    <div className="flex h-full flex-col">
+      {/* Header skeleton */}
+      <div className="flex items-center gap-2 border-b px-4 py-2">
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-3 w-16" />
+      </div>
+      {/* Content skeleton */}
+      <div className="flex-1 overflow-auto p-4 space-y-2">
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-4 w-1/2" />
+        <Skeleton className="h-4 w-2/3" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-4/5" />
+        <Skeleton className="h-4 w-1/3" />
+        <Skeleton className="h-4 w-3/5" />
+        <Skeleton className="h-4 w-2/3" />
+        <Skeleton className="h-4 w-1/2" />
+        <Skeleton className="h-4 w-4/5" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-1/4" />
+      </div>
+    </div>
+  );
+}
+
 export function FileViewer({ sandboxId, filePath }: FileViewerProps) {
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["file", sandboxId, filePath],
     queryFn: async () => {
       const response = await fetch(
@@ -50,17 +79,22 @@ export function FileViewer({ sandboxId, filePath }: FileViewerProps) {
   });
 
   if (isLoading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <FileViewerSkeleton />;
   }
 
   if (error) {
     return (
-      <div className="flex h-full items-center justify-center text-red-500">
-        Failed to load file
+      <div className="flex h-full flex-col items-center justify-center gap-3">
+        <FileCode2 className="h-10 w-10 text-muted-foreground" />
+        <p className="text-sm text-red-500">Failed to load file</p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => refetch()}
+        >
+          <RefreshCw className="mr-1 h-3 w-3" />
+          Retry
+        </Button>
       </div>
     );
   }
@@ -70,11 +104,17 @@ export function FileViewer({ sandboxId, filePath }: FileViewerProps) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2 border-b px-4 py-2">
-        <span className="text-sm font-medium">{fileName}</span>
-        <span className="text-xs text-muted-foreground">({language})</span>
+      <div className="flex items-center justify-between border-b px-4 py-2">
+        <div className="flex items-center gap-2">
+          <FileCode2 className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">{fileName}</span>
+          <span className="text-xs text-muted-foreground">({language})</span>
+        </div>
+        {isFetching && !isLoading && (
+          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+        )}
       </div>
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto bg-muted/30">
         <pre className="h-full p-4 text-sm">
           <code className={`language-${language}`}>
             {data?.content || ""}
