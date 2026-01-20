@@ -14,6 +14,14 @@ const envSchema = z.object({
   // Stripe keys are optional in development, required in production
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  // E2B Sandbox configuration
+  E2B_API_KEY: z.string().optional(),
+  // Anthropic API key (used by claude-agent-sdk in sandbox)
+  ANTHROPIC_API_KEY: z.string().optional(),
+  // Sandbox idle timeout before hibernation (default: 30 seconds)
+  SANDBOX_IDLE_TIMEOUT_MS: z.coerce.number().default(30000),
+  // Max hibernation time before termination (default: 1 hour)
+  SANDBOX_MAX_HIBERNATE_MS: z.coerce.number().default(3600000),
 });
 
 export type Env = z.infer<typeof envSchema>;

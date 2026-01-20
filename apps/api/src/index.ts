@@ -43,6 +43,7 @@ import { validateEnv } from "./env";
 import checkoutRoute from "./routes/checkout";
 import ordersRoute from "./routes/orders";
 import postsRoute from "./routes/posts";
+import projectsRoute from "./routes/projects";
 import userRoute from "./routes/user";
 import webhooksRoute from "./routes/webhooks";
 
@@ -131,6 +132,7 @@ const app = baseApp
     return c.json({ status: dbHealth.healthy ? "ok" : "degraded" }, dbHealth.healthy ? 200 : 503);
   })
   .route("/api/posts", postsRoute)
+  .route("/api/projects", projectsRoute)
   .route("/api/checkout", checkoutRoute)
   .route("/api/orders", ordersRoute)
   .route("/api/webhooks", webhooksRoute)
