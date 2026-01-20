@@ -17,7 +17,9 @@ import { LandingPage } from "./pages/landing";
 import { LoginPage } from "./pages/login";
 import { NotFoundPage } from "./pages/not-found";
 import { PricingPage } from "./pages/pricing";
+import { ProjectsPage } from "./pages/projects";
 import { RegisterPage } from "./pages/register";
+import { WorkspacePage } from "./pages/workspace";
 
 function App() {
   return (
@@ -34,10 +36,14 @@ function App() {
         {/* Protected routes */}
         <Route element={<DashboardLayout />}>
           <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
+          <Route path={ROUTES.PROJECTS} element={<ProjectsPage />} />
           <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
           <Route path={ROUTES.BILLING} element={<BillingPage />} />
           <Route path={ROUTES.ORDERS} element={<OrdersPage />} />
         </Route>
+
+        {/* Workspace route (full page, no dashboard layout) */}
+        <Route path={ROUTES.WORKSPACE} element={<WorkspacePage />} />
 
         {/* 404 */}
         <Route path="*" element={<NotFoundPage />} />

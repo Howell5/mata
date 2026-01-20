@@ -44,8 +44,12 @@ import checkoutRoute from "./routes/checkout";
 import ordersRoute from "./routes/orders";
 import postsRoute from "./routes/posts";
 import projectsRoute from "./routes/projects";
+import sandboxRoute from "./routes/sandbox";
 import userRoute from "./routes/user";
 import webhooksRoute from "./routes/webhooks";
+import agentRoute from "./routes/agent";
+import conversationsRoute from "./routes/conversations";
+import { SandboxCleanupService } from "./services/sandbox-cleanup.service";
 
 const env = validateEnv();
 
@@ -133,6 +137,9 @@ const app = baseApp
   })
   .route("/api/posts", postsRoute)
   .route("/api/projects", projectsRoute)
+  .route("/api/sandbox", sandboxRoute)
+  .route("/api/agent", agentRoute)
+  .route("/api/conversations", conversationsRoute)
   .route("/api/checkout", checkoutRoute)
   .route("/api/orders", ordersRoute)
   .route("/api/webhooks", webhooksRoute)
@@ -153,6 +160,9 @@ if (process.env.NODE_ENV !== "test") {
     fetch: app.fetch,
     port: env.PORT,
   });
+
+  // Start sandbox cleanup service
+  SandboxCleanupService.start();
 }
 
 /**
@@ -183,6 +193,10 @@ async function gracefulShutdown(signal: string) {
       });
     });
   }
+
+  // Stop sandbox cleanup service
+  console.log("[Shutdown] Stopping sandbox cleanup service...");
+  SandboxCleanupService.stop();
 
   // Close database connections
   console.log("[Shutdown] Closing database connections...");
