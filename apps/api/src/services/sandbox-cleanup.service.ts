@@ -4,7 +4,14 @@ import { sandboxes } from "../db/schema";
 import { validateEnv } from "../env";
 import { SandboxManager } from "./sandbox.service";
 
-const env = validateEnv();
+// Lazy env validation - only validate when actually needed
+let _env: ReturnType<typeof validateEnv> | null = null;
+function getEnv() {
+  if (!_env) {
+    _env = validateEnv();
+  }
+  return _env;
+}
 
 /**
  * Sandbox cleanup service
@@ -71,7 +78,7 @@ export class SandboxCleanupService {
    * Pause sandboxes that have been idle for too long
    */
   private static async pauseIdleSandboxes(now: Date): Promise<void> {
-    const idleThreshold = new Date(now.getTime() - env.SANDBOX_IDLE_TIMEOUT_MS);
+    const idleThreshold = new Date(now.getTime() - getEnv().SANDBOX_IDLE_TIMEOUT_MS);
 
     // Find running sandboxes that have been idle
     const idleSandboxes = await db.query.sandboxes.findMany({
@@ -98,7 +105,7 @@ export class SandboxCleanupService {
    * Terminate sandboxes that have been paused for too long
    */
   private static async terminateHibernatingSandboxes(now: Date): Promise<void> {
-    const hibernateThreshold = new Date(now.getTime() - env.SANDBOX_MAX_HIBERNATE_MS);
+    const hibernateThreshold = new Date(now.getTime() - getEnv().SANDBOX_MAX_HIBERNATE_MS);
 
     // Find paused sandboxes that have been hibernating too long
     const hibernatingSandboxes = await db.query.sandboxes.findMany({
@@ -129,8 +136,8 @@ export class SandboxCleanupService {
     terminatedCount: number;
   }> {
     const now = new Date();
-    const idleThreshold = new Date(now.getTime() - env.SANDBOX_IDLE_TIMEOUT_MS);
-    const hibernateThreshold = new Date(now.getTime() - env.SANDBOX_MAX_HIBERNATE_MS);
+    const idleThreshold = new Date(now.getTime() - getEnv().SANDBOX_IDLE_TIMEOUT_MS);
+    const hibernateThreshold = new Date(now.getTime() - getEnv().SANDBOX_MAX_HIBERNATE_MS);
 
     let pausedCount = 0;
     let terminatedCount = 0;

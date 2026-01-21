@@ -4,7 +4,14 @@ import { db } from "../db";
 import { projects, sandboxes, type SandboxState } from "../db/schema";
 import { validateEnv } from "../env";
 
-const env = validateEnv();
+// Lazy env validation - only validate when actually needed
+let _env: ReturnType<typeof validateEnv> | null = null;
+function getEnv() {
+  if (!_env) {
+    _env = validateEnv();
+  }
+  return _env;
+}
 
 /**
  * File node representation for file tree
@@ -51,7 +58,7 @@ export class SandboxManager {
    * Get E2B API key from environment
    */
   private static getApiKey(): string {
-    const apiKey = env.E2B_API_KEY;
+    const apiKey = getEnv().E2B_API_KEY;
     if (!apiKey) {
       throw new Error("E2B_API_KEY is not configured");
     }
