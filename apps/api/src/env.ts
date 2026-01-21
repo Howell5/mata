@@ -41,3 +41,15 @@ export function validateEnv(): Env {
 
   return result.data;
 }
+
+/**
+ * Lazy-loaded environment variables
+ * Use this instead of validateEnv() in modules that are imported before dotenv.config()
+ */
+let _env: Env | null = null;
+export function getEnv(): Env {
+  if (!_env) {
+    _env = validateEnv();
+  }
+  return _env;
+}

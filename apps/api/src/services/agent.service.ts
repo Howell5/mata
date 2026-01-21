@@ -1,17 +1,8 @@
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { sandboxes, conversations, messages } from "../db/schema";
-import { validateEnv } from "../env";
+import { getEnv } from "../env";
 import { SandboxManager } from "./sandbox.service";
-
-// Lazy env validation - only validate when actually needed
-let _env: ReturnType<typeof validateEnv> | null = null;
-function getEnv() {
-  if (!_env) {
-    _env = validateEnv();
-  }
-  return _env;
-}
 
 /**
  * Agent event types for SSE streaming

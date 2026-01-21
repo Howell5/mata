@@ -2,16 +2,7 @@ import { Sandbox } from "e2b";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { projects, sandboxes, type SandboxState } from "../db/schema";
-import { validateEnv } from "../env";
-
-// Lazy env validation - only validate when actually needed
-let _env: ReturnType<typeof validateEnv> | null = null;
-function getEnv() {
-  if (!_env) {
-    _env = validateEnv();
-  }
-  return _env;
-}
+import { getEnv } from "../env";
 
 /**
  * File node representation for file tree
