@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
+import { useSession } from "@/lib/auth-client";
 import { ROUTES } from "@/lib/routes";
 import { motion } from "framer-motion";
+import { Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const fadeInUp = {
@@ -9,6 +11,8 @@ const fadeInUp = {
 };
 
 export function Hero() {
+  const { data: session } = useSession();
+
   return (
     <section className="relative overflow-hidden py-24 md:py-32 lg:py-40">
       <div className="container mx-auto px-4">
@@ -20,9 +24,9 @@ export function Hero() {
             animate="animate"
             transition={{ duration: 0.5 }}
           >
-            Build your SaaS
+            Build web apps
             <br />
-            <span className="text-muted-foreground">in record time</span>
+            <span className="text-muted-foreground">with AI</span>
           </motion.h1>
 
           <motion.p
@@ -32,8 +36,8 @@ export function Hero() {
             animate="animate"
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            A modern full-stack template with authentication, payments, and everything you need to
-            launch your next project.
+            Describe what you want to build. Watch AI write the code, run it in a sandbox, and
+            preview your app in real-time.
           </motion.p>
 
           <motion.div
@@ -43,9 +47,21 @@ export function Hero() {
             animate="animate"
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <Button asChild size="lg" className="min-w-[160px]">
-              <Link to={ROUTES.LOGIN}>Get Started</Link>
-            </Button>
+            {session ? (
+              <Button asChild size="lg" className="min-w-[180px]">
+                <Link to={ROUTES.PROJECTS}>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Go to Projects
+                </Link>
+              </Button>
+            ) : (
+              <Button asChild size="lg" className="min-w-[180px]">
+                <Link to={ROUTES.LOGIN}>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Start Building
+                </Link>
+              </Button>
+            )}
             <Button asChild variant="outline" size="lg" className="min-w-[160px]">
               <Link to={ROUTES.PRICING}>View Pricing</Link>
             </Button>
@@ -71,7 +87,7 @@ export function Hero() {
                 </div>
                 <div className="ml-4 flex-1">
                   <div className="mx-auto max-w-md rounded-md bg-background px-3 py-1.5 text-center text-xs text-muted-foreground">
-                    yourapp.com/dashboard
+                    mata.app/workspace
                   </div>
                 </div>
               </div>
@@ -79,10 +95,8 @@ export function Hero() {
               <div className="aspect-[16/10] bg-gradient-to-br from-muted/30 to-muted/80">
                 <div className="flex h-full items-center justify-center">
                   <div className="text-center">
-                    <div className="text-6xl opacity-20">📊</div>
-                    <p className="mt-4 text-sm text-muted-foreground">
-                      Product screenshot placeholder
-                    </p>
+                    <div className="text-6xl opacity-20">🤖</div>
+                    <p className="mt-4 text-sm text-muted-foreground">AI Sandbox Builder</p>
                   </div>
                 </div>
               </div>
