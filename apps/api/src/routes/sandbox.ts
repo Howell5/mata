@@ -3,9 +3,9 @@ import { projectIdSchema } from "@repo/shared";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
-import { auth } from "../auth";
 import { db } from "../db";
 import { projects, sandboxes } from "../db/schema";
+import { getSession } from "../lib/dev-auth";
 import { errors, ok } from "../lib/response";
 import { SandboxManager } from "../services/sandbox.service";
 
@@ -61,7 +61,7 @@ const sandboxRoute = new Hono()
    * Start or resume a sandbox for a project
    */
   .post("/project/:id/start", zValidator("param", projectIdSchema), async (c) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    const session = await getSession(c);
     if (!session) {
       return errors.unauthorized(c);
     }
@@ -95,7 +95,7 @@ const sandboxRoute = new Hono()
    * Pause a running sandbox
    */
   .post("/:sandboxId/pause", zValidator("param", sandboxIdSchema), async (c) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    const session = await getSession(c);
     if (!session) {
       return errors.unauthorized(c);
     }
@@ -124,7 +124,7 @@ const sandboxRoute = new Hono()
    * Terminate a sandbox completely
    */
   .post("/:sandboxId/terminate", zValidator("param", sandboxIdSchema), async (c) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    const session = await getSession(c);
     if (!session) {
       return errors.unauthorized(c);
     }
@@ -153,7 +153,7 @@ const sandboxRoute = new Hono()
    * List files in a sandbox directory
    */
   .get("/:sandboxId/files", zValidator("param", sandboxIdSchema), async (c) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    const session = await getSession(c);
     if (!session) {
       return errors.unauthorized(c);
     }
@@ -187,7 +187,7 @@ const sandboxRoute = new Hono()
    * Read a file from sandbox
    */
   .get("/:sandboxId/file", zValidator("param", sandboxIdSchema), async (c) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    const session = await getSession(c);
     if (!session) {
       return errors.unauthorized(c);
     }
@@ -229,7 +229,7 @@ const sandboxRoute = new Hono()
     zValidator("param", sandboxIdSchema),
     zValidator("json", writeFileSchema),
     async (c) => {
-      const session = await auth.api.getSession({ headers: c.req.raw.headers });
+      const session = await getSession(c);
       if (!session) {
         return errors.unauthorized(c);
       }
@@ -264,7 +264,7 @@ const sandboxRoute = new Hono()
    * Delete a file from sandbox
    */
   .delete("/:sandboxId/file", zValidator("param", sandboxIdSchema), async (c) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    const session = await getSession(c);
     if (!session) {
       return errors.unauthorized(c);
     }
@@ -306,7 +306,7 @@ const sandboxRoute = new Hono()
     zValidator("param", sandboxIdSchema),
     zValidator("json", filePathSchema),
     async (c) => {
-      const session = await auth.api.getSession({ headers: c.req.raw.headers });
+      const session = await getSession(c);
       if (!session) {
         return errors.unauthorized(c);
       }
@@ -345,7 +345,7 @@ const sandboxRoute = new Hono()
     zValidator("param", sandboxIdSchema),
     zValidator("json", executeCommandSchema),
     async (c) => {
-      const session = await auth.api.getSession({ headers: c.req.raw.headers });
+      const session = await getSession(c);
       if (!session) {
         return errors.unauthorized(c);
       }
@@ -384,7 +384,7 @@ const sandboxRoute = new Hono()
    * Get preview URL for a port
    */
   .get("/:sandboxId/preview", zValidator("param", sandboxIdSchema), async (c) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    const session = await getSession(c);
     if (!session) {
       return errors.unauthorized(c);
     }

@@ -2,9 +2,9 @@ import { zValidator } from "@hono/zod-validator";
 import { projectIdSchema } from "@repo/shared";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
-import { auth } from "../auth";
 import { db } from "../db";
 import { projects } from "../db/schema";
+import { getSession } from "../lib/dev-auth";
 import { errors, ok } from "../lib/response";
 import { AgentService } from "../services/agent.service";
 
@@ -14,7 +14,7 @@ const conversationsRoute = new Hono()
    * Get conversation history for a project
    */
   .get("/:id", zValidator("param", projectIdSchema), async (c) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    const session = await getSession(c);
     if (!session) {
       return errors.unauthorized(c);
     }

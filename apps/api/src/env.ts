@@ -22,6 +22,12 @@ const envSchema = z.object({
   SANDBOX_IDLE_TIMEOUT_MS: z.coerce.number().default(30000),
   // Max hibernation time before termination (default: 1 hour)
   SANDBOX_MAX_HIBERNATE_MS: z.coerce.number().default(3600000),
+  // Development: bypass auth and use a mock user ID
+  DEV_BYPASS_AUTH: z
+    .string()
+    .optional()
+    .transform((v) => v === "true"),
+  DEV_USER_ID: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

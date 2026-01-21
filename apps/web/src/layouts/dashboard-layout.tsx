@@ -1,5 +1,6 @@
 import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
+import { env } from "@/env";
 import { useSession } from "@/lib/auth-client";
 import { ROUTES } from "@/lib/routes";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
@@ -8,8 +9,11 @@ export function DashboardLayout() {
   const { data: session, isPending } = useSession();
   const location = useLocation();
 
-  // Show loading while checking auth
-  if (isPending) {
+  // Bypass auth in development mode
+  const bypassAuth = env.VITE_DEV_BYPASS_AUTH;
+
+  // Show loading while checking auth (skip if bypassing)
+  if (isPending && !bypassAuth) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-muted-foreground">Loading...</div>
@@ -17,8 +21,8 @@ export function DashboardLayout() {
     );
   }
 
-  // Redirect to login if not authenticated
-  if (!session) {
+  // Redirect to login if not authenticated (skip if bypassing)
+  if (!session && !bypassAuth) {
     return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />;
   }
 

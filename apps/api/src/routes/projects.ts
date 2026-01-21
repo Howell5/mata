@@ -2,9 +2,9 @@ import { zValidator } from "@hono/zod-validator";
 import { createProjectSchema, projectIdSchema, updateProjectSchema } from "@repo/shared";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
-import { auth } from "../auth";
 import { db } from "../db";
 import { projects } from "../db/schema";
+import { getSession } from "../lib/dev-auth";
 import { errors, ok } from "../lib/response";
 
 const projectsRoute = new Hono()
@@ -13,7 +13,7 @@ const projectsRoute = new Hono()
    * List all projects for the authenticated user
    */
   .get("/", async (c) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    const session = await getSession(c);
     if (!session) {
       return errors.unauthorized(c);
     }
@@ -45,7 +45,7 @@ const projectsRoute = new Hono()
    * Create a new project
    */
   .post("/", zValidator("json", createProjectSchema), async (c) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    const session = await getSession(c);
     if (!session) {
       return errors.unauthorized(c);
     }
@@ -82,7 +82,7 @@ const projectsRoute = new Hono()
    * Get a single project by ID
    */
   .get("/:id", zValidator("param", projectIdSchema), async (c) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    const session = await getSession(c);
     if (!session) {
       return errors.unauthorized(c);
     }
@@ -132,7 +132,7 @@ const projectsRoute = new Hono()
     zValidator("param", projectIdSchema),
     zValidator("json", updateProjectSchema),
     async (c) => {
-      const session = await auth.api.getSession({ headers: c.req.raw.headers });
+      const session = await getSession(c);
       if (!session) {
         return errors.unauthorized(c);
       }
@@ -177,7 +177,7 @@ const projectsRoute = new Hono()
    * Delete a project and its associated sandbox
    */
   .delete("/:id", zValidator("param", projectIdSchema), async (c) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    const session = await getSession(c);
     if (!session) {
       return errors.unauthorized(c);
     }

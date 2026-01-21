@@ -3,9 +3,9 @@ import { sendMessageSchema, projectIdSchema } from "@repo/shared";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
-import { auth } from "../auth";
 import { db } from "../db";
 import { projects } from "../db/schema";
+import { getSession } from "../lib/dev-auth";
 import { errors, ok } from "../lib/response";
 import { AgentService } from "../services/agent.service";
 
@@ -15,7 +15,7 @@ const agentRoute = new Hono()
    * Send a message to the agent and receive SSE stream of responses
    */
   .post("/chat", zValidator("json", sendMessageSchema), async (c) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    const session = await getSession(c);
     if (!session) {
       return errors.unauthorized(c);
     }
@@ -65,7 +65,7 @@ const agentRoute = new Hono()
    * Stop current agent execution
    */
   .post("/stop", zValidator("json", projectIdSchema.extend({ id: projectIdSchema.shape.id })), async (c) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    const session = await getSession(c);
     if (!session) {
       return errors.unauthorized(c);
     }
@@ -99,7 +99,7 @@ const agentRoute = new Hono()
    * Get conversation history for a project
    */
   .get("/history/:id", zValidator("param", projectIdSchema), async (c) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    const session = await getSession(c);
     if (!session) {
       return errors.unauthorized(c);
     }

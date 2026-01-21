@@ -2,6 +2,11 @@ import { z } from "zod";
 
 const envSchema = z.object({
   VITE_API_URL: z.string().url().default("http://localhost:3000"),
+  // Set to "true" to bypass auth checks in development
+  VITE_DEV_BYPASS_AUTH: z
+    .string()
+    .optional()
+    .transform((v) => v === "true"),
 });
 
 export type ClientEnv = z.infer<typeof envSchema>;
